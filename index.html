@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wamii | Python自動化エンジニア</title>
+  <style>
+    /* =====================================================
+       デザイントークン
+    ===================================================== */
+    :root {
+      --primary:      #0f172a;
+      --accent:       #6366f1;
+      --accent2:      #8b5cf6;
+      --accent3:      #06b6d4;
+      --bg:           #f8faff;
+      --bg-card:      #ffffff;
+      --text:         #0f172a;
+      --text-sub:     #64748b;
+      --text-light:   #94a3b8;
+      --border:       #e2e8f0;
+      --shadow-sm:    0 1px 4px rgba(0,0,0,0.06);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg:    0 12px 48px rgba(0,0,0,0.10);
+      --shadow-glow:  0 8px 40px rgba(99,102,241,0.28);
+      --radius-sm:    8px;
+      --radius-md:    14px;
+      --radius-lg:    20px;
+      --radius-xl:    28px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:       #080d18;
+        --bg-card:  #0f172a;
+        --text:     #f1f5f9;
+        --text-sub: #94a3b8;
+        --border:   #1e293b;
+        --shadow-lg: 0 12px 48px rgba(0,0,0,0.4);
+      }
+    }
+
+    /* =====================================================
+       リセット・ベース
+    ===================================================== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* =====================================================
+       アニメーション定義
+    ===================================================== */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-10px); }
+    }
+    @keyframes glow-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5), 0 8px 32px rgba(0,0,0,0.3); }
+      50%       { box-shadow: 0 0 0 10px rgba(99,102,241,0), 0 8px 32px rgba(0,0,0,0.3); }
+    }
+    @keyframes gradient-shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    /* スクロールフェードイン */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1),
+                  transform 0.7s cubic-bezier(0.16,1,0.3,1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal:nth-child(2) { transition-delay: 0.09s; }
+    .reveal:nth-child(3) { transition-delay: 0.18s; }
+    .reveal:nth-child(4) { transition-delay: 0.27s; }
+    .reveal:nth-child(5) { transition-delay: 0.36s; }
+    .reveal:nth-child(6) { transition-delay: 0.45s; }
+
+    /* =====================================================
+       ナビゲーション
+    ===================================================== */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(248,250,255,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 5%;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    /* ロゴにグラデーションテキスト */
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.03em;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* =====================================================
+       ヒーローセクション（ダーク）
+    ===================================================== */
+    .hero {
+      background: var(--primary);
+      position: relative;
+      overflow: hidden;
+      padding: 100px 5% 88px;
+      text-align: center;
+    }
+    /* メッシュグラデーション */
+    .hero-mesh {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 70% at 15% -10%, rgba(99,102,241,0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 60% at 85% 110%, rgba(139,92,246,0.28) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(6,182,212,0.12) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    /* ドットグリッドオーバーレイ */
+    .hero-dots {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+    }
+    .hero-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    /* アバター：フロート＋グロウリング */
+    .hero-avatar {
+      width: 104px; height: 104px;
+      border-radius: 50%;
+      margin: 0 auto 1.6rem;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.18);
+      animation: float 5s ease-in-out infinite, glow-ring 3.5s ease-in-out infinite;
+    }
+    .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    /* アイブロウバッジ */
+    .hero-eyebrow {
+      display: inline-block;
+      background: rgba(99,102,241,0.18);
+      border: 1px solid rgba(129,140,248,0.35);
+      border-radius: 999px;
+      padding: 0.28rem 1.1rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      margin-bottom: 1.3rem;
+    }
+    /* メインキャッチコピー（h1） */
+    .hero h1 {
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.14;
+      letter-spacing: -0.03em;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+    /* グラデーションテキスト部分 */
+    .hero h1 .grad {
+      background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 50%, #67e8f9 100%);
+      background-size: 200% 200%;
+      animation: gradient-shift 6s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.58);
+      margin: 0.8rem auto 2.2rem;
+      line-height: 1.85;
+      max-width: 520px;
+    }
+    /* 実績数字バッジ群 */
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      margin-bottom: 2.4rem;
+    }
+    .hero-stat {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-md);
+      padding: 0.65rem 1.3rem;
+      text-align: center;
+      backdrop-filter: blur(4px);
+    }
+    .hero-stat-num {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: white;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+    .hero-stat-label {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.02em;
+    }
+    /* CTAボタン群 */
+    .hero-cta-wrap {
+      display: flex;
+      gap: 0.85rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.9rem 2.2rem;
+      border-radius: 999px;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.45);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 36px rgba(99,102,241,0.55);
+    }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.78);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.88rem 2rem;
+      border-radius: 999px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-ghost:hover {
+      border-color: rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* =====================================================
+       セクション共通
+    ===================================================== */
+    section { padding: 84px 5%; }
+    .section-inner { max-width: 1160px; margin: 0 auto; }
+    .section-header { margin-bottom: 3rem; }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 999px;
+      padding: 0.22rem 0.95rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      margin-bottom: 0.55rem;
+      position: relative;
+      padding-bottom: 0.6rem;
+    }
+    /* グラデーションアンダーライン */
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 40px; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
+      border-radius: 999px;
+    }
+    .section-desc {
+      color: var(--text-sub);
+      font-size: 0.95rem;
+      max-width: 500px;
+      line-height: 1.75;
+    }
+
+    /* =====================================================
+       強み
+    ===================================================== */
+    .strengths { background: var(--bg-card); }
+    .strength-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+    .strength-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      padding: 2rem 2rem 2.2rem;
+      border: 1px solid var(--border);
+      transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+      position: relative;
+      overflow: hidden;
+    }
+    /* ホバー時にトップにグラデーションライン */
+    .strength-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .strength-card:hover {
+      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(99,102,241,0.14);
+      transform: translateY(-6px);
+      border-color: rgba(99,102,241,0.18);
+    }
+    .strength-card:hover::before { opacity: 1; }
+    /* アイコンを背景付きボックスに */
+    .strength-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.2rem;
+    }
+    .strength-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .strength-card p {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+      line-height: 1.75;
+    }
+
+    /* =====================================================
+       スキル
+    ===================================================== */
+    .skills { background: var(--bg); }
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .skill-group {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 1.4rem 1.6rem;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .skill-group:hover {
+      border-color: rgba(99,102,241,0.28);
+      box-shadow: var(--shadow-sm);
+    }
+    .skill-group-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.85rem;
+      text-transform: uppercase;
+    }
+    .skill-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .skill-tag {
+      background: rgba(99,102,241,0.07);
+      color: var(--accent);
+      border: 1px solid rgba(99,102,241,0.16);
+      border-radius: 6px;
+      padding: 0.22rem 0.65rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .skill-tag:hover { background: rgba(99,102,241,0.14); }
+
+    /* =====================================================
+       実績プロジェクト
+    ===================================================== */
+    .projects { background: var(--bg-card); }
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .project-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+      background: var(--bg-card);
+      cursor: pointer;
+      position: relative;
+    }
+    /* ホバー時の内側グロウオーバーレイ */
+    .project-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, rgba(99,102,241,0.04), rgba(139,92,246,0.06));
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .project-card:hover {
+      box-shadow: var(--shadow-lg), 0 0 0 1.5px rgba(99,102,241,0.22);
+      transform: translateY(-7px);
+    }
+    .project-card:hover::before { opacity: 1; }
+    .project-thumb {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      position: relative;
+      z-index: 1;
+    }
+    .project-body {
+      padding: 1.4rem 1.5rem 1.6rem;
+      position: relative;
+      z-index: 1;
+    }
+    .project-category {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.45rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge-practice {
+      background: rgba(99,102,241,0.08);
+      color: var(--accent);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 999px;
+      padding: 0.12rem 0.65rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: none;
+    }
+    .project-body h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+    .project-body p {
+      font-size: 0.855rem;
+      color: var(--text-sub);
+      margin-bottom: 0.9rem;
+      line-height: 1.68;
+    }
+    /* Before/After インパクト表示 */
+    .project-impact {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.9rem;
+      flex-wrap: nowrap;
+    }
+    .impact-before {
+      background: rgba(239,68,68,0.07);
+      color: #dc2626;
+      border: 1px solid rgba(239,68,68,0.18);
+      border-radius: 6px;
+      padding: 0.18rem 0.55rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .impact-arrow { color: var(--text-light); font-size: 0.9rem; flex-shrink: 0; }
+    .impact-after {
+      background: rgba(22,163,74,0.07);
+      color: #16a34a;
+      border: 1px solid rgba(22,163,74,0.18);
+      border-radius: 6px;
+      padding: 0.18rem 0.55rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .project-techs { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .tech-tag {
+      background: var(--bg);
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.18rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .project-body::after {
+      content: '詳細を見る →';
+      display: block;
+      margin-top: 1rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* =====================================================
+       依頼の流れ
+    ===================================================== */
+    .flow {
+      background: var(--bg);
+      background-image: radial-gradient(rgba(99,102,241,0.07) 1.5px, transparent 1.5px);
+      background-size: 28px 28px;
+    }
+    .flow-steps {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 140px;
+      max-width: 200px;
+      text-align: center;
+      padding: 1.8rem 1rem;
+      position: relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    /* ステップ番号：グラデーション円 */
+    .flow-num {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.8rem;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .flow-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .flow-step h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .flow-step p {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+    @media (max-width: 700px) {
+      .flow-step:not(:last-child)::after { display: none; }
+      .flow-steps { flex-direction: column; align-items: center; }
+      .flow-step { max-width: 100%; width: 100%; }
+    }
+
+    /* =====================================================
+       対応メニュー（料金）
+    ===================================================== */
+    .pricing { background: var(--bg-card); }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.4rem;
+    }
+    .pricing-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .pricing-card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-5px);
+    }
+    /* 注目プラン：ダークグラデーション */
+    .pricing-card.featured {
+      background: linear-gradient(145deg, #1e1b4b 0%, #312e81 45%, #1e3a5f 100%);
+      border-color: rgba(129,140,248,0.25);
+      box-shadow: 0 8px 40px rgba(99,102,241,0.3);
+    }
+    /* リボンバッジ */
+    .pricing-card.featured::before {
+      content: '人気 No.1';
+      position: absolute;
+      top: 18px; right: -26px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.22rem 2.4rem;
+      transform: rotate(35deg);
+      letter-spacing: 0.05em;
+    }
+    .pricing-card.featured h3 { color: white; }
+    .pricing-card.featured .pricing-price { color: #a5b4fc; }
+    .pricing-card.featured .pricing-price span { color: rgba(255,255,255,0.45); }
+    .pricing-card.featured .pricing-desc { color: rgba(255,255,255,0.6); }
+    .pricing-card.featured .pricing-list { color: rgba(255,255,255,0.78); }
+    .pricing-card.featured .pricing-list li::before { color: #a5b4fc; }
+    .pricing-icon { font-size: 2rem; margin-bottom: 0.7rem; }
+    .pricing-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .pricing-price {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.03em;
+    }
+    .pricing-price span {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--text-sub);
+    }
+    .pricing-desc {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .pricing-list { list-style: none; text-align: left; font-size: 0.83rem; color: var(--text-sub); }
+    .pricing-list li { padding: 0.28rem 0; padding-left: 1.2rem; position: relative; }
+    .pricing-list li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+    /* =====================================================
+       安心ポイント
+    ===================================================== */
+    .trust { background: var(--bg); }
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem;
+    }
+    .trust-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      padding: 1.4rem;
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .trust-item:hover {
+      border-color: rgba(99,102,241,0.2);
+      box-shadow: var(--shadow-sm);
+    }
+    /* アイコンをアイコンボックスに統一 */
+    .trust-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .trust-item h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .trust-item p {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      line-height: 1.65;
+    }
+
+    /* =====================================================
+       CTA セクション（ダーク）
+    ===================================================== */
+    .cta-section {
+      background: var(--primary);
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      padding: 100px 5%;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 70% at 25% 50%, rgba(99,102,241,0.32) 0%, transparent 58%),
+        radial-gradient(ellipse 55% 65% at 75% 50%, rgba(139,92,246,0.24) 0%, transparent 58%);
+      pointer-events: none;
+    }
+    .cta-section::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 30px 30px;
+      pointer-events: none;
+    }
+    .cta-section .section-inner { position: relative; z-index: 1; }
+    .cta-section h2 {
+      font-size: clamp(1.7rem, 4vw, 2.3rem);
+      font-weight: 900;
+      color: white;
+      margin-bottom: 0.9rem;
+      letter-spacing: -0.025em;
+    }
+    .cta-section p {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 2.4rem;
+      line-height: 1.8;
+    }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* =====================================================
+       フッター
+    ===================================================== */
+    footer {
+      background: #05080f;
+      color: rgba(255,255,255,0.25);
+      text-align: center;
+      padding: 2.2rem;
+      font-size: 0.82rem;
+    }
+
+    /* =====================================================
+       モーダル
+    ===================================================== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 999;
+      padding: 1.5rem;
+      overflow-y: auto;
+      backdrop-filter: blur(10px);
+    }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+    .modal {
+      background: var(--bg-card);
+      border-radius: var(--radius-xl);
+      max-width: 660px;
+      width: 100%;
+      margin: auto;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      animation: modal-in 0.28s cubic-bezier(0.16,1,0.3,1);
+      overflow: hidden;
+    }
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.95) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-thumb {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      flex-shrink: 0;
+    }
+    .modal-content { padding: 1.8rem 2rem 2rem; overflow-y: auto; flex: 1; }
+    .modal-category-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.8rem;
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+    }
+    .modal-desc {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+      line-height: 1.78;
+      margin-bottom: 1rem;
+    }
+    .modal-points {
+      background: rgba(99,102,241,0.06);
+      border: 1px solid rgba(99,102,241,0.14);
+      border-radius: var(--radius-sm);
+      padding: 0.8rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      line-height: 2;
+    }
+    .modal-sample-wrap { margin-bottom: 1rem; }
+    .modal-sample-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-sub);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+    .modal-sample {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .sample-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .sample-table thead tr { background: var(--primary); color: white; }
+    .sample-table th { padding: 0.45rem 0.7rem; font-weight: 600; text-align: left; letter-spacing: 0.02em; }
+    .sample-table td {
+      padding: 0.4rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .sample-table tbody tr:nth-child(even) td { background: var(--bg); }
+    .sample-table tbody tr:last-child td { border-bottom: none; }
+    .sample-table .note-row td {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.72rem;
+      background: var(--bg);
+      font-style: italic;
+    }
+    .rank { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-weight: 700; font-size: 0.72rem; }
+    .rank-a { background: rgba(22,163,74,0.1); color: #16a34a; }
+    .rank-b { background: rgba(234,179,8,0.1); color: #b45309; }
+    .rank-c { background: rgba(239,68,68,0.1); color: #dc2626; }
+    .modal-techs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.2rem; }
+    .modal-close-btn {
+      display: block;
+      width: 100%;
+      padding: 0.82rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .modal-close-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* =====================================================
+       プロジェクトサムネイル：モックUI
+    ===================================================== */
+    /* 共通ウィンドウ枠（macOS風） */
+    .mock-win {
+      background: #fff;
+      border-radius: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      width: 86%;
+      overflow: hidden;
+      font-size: 0.6rem;
+      line-height: 1.3;
+    }
+    /* タイトルバー */
+    .mock-bar {
+      background: #f3f4f6;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0.28rem 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.28rem;
+    }
+    .mock-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .mock-dot-r { background: #ef4444; }
+    .mock-dot-y { background: #f59e0b; }
+    .mock-dot-g { background: #22c55e; }
+    .mock-bar-title { flex: 1; text-align: center; font-size: 0.55rem; color: #9ca3af; margin-left: -1.5rem; }
+    .mock-body { padding: 0.45rem; }
+    /* ミニテーブル */
+    .mock-tbl { width: 100%; border-collapse: collapse; }
+    .mock-tbl th { background: #1e293b; color: white; padding: 0.2rem 0.35rem; font-size: 0.52rem; text-align: left; }
+    .mock-tbl td { padding: 0.18rem 0.35rem; border-bottom: 1px solid #f1f5f9; font-size: 0.55rem; color: #374151; }
+    .mock-tbl tr:nth-child(even) td { background: #f8faff; }
+    .mock-rank { display: inline-block; border-radius: 3px; padding: 0 0.28rem; font-weight: 700; font-size: 0.5rem; }
+    .mock-rank-a { background: #dcfce7; color: #16a34a; }
+    .mock-rank-b { background: #fef9c3; color: #b45309; }
+    /* バーチャート */
+    .mock-chart { padding: 0.4rem 0.45rem 0.3rem; }
+    .mock-bar-row { display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.2rem; }
+    .mock-bar-label { font-size: 0.5rem; color: #6b7280; width: 1.6rem; text-align: right; flex-shrink: 0; }
+    .mock-bar-track { flex: 1; background: #f1f5f9; border-radius: 999px; height: 7px; overflow: hidden; }
+    .mock-bar-fill { height: 100%; border-radius: 999px; }
+    .mock-bar-val { font-size: 0.5rem; color: #374151; font-weight: 600; width: 2rem; }
+    /* クラスターバブル */
+    .mock-cluster { padding: 0.45rem; display: flex; flex-wrap: wrap; gap: 0.22rem; justify-content: center; }
+    .mock-bubble { border-radius: 999px; padding: 0.16rem 0.42rem; font-size: 0.52rem; font-weight: 600; white-space: nowrap; }
+    /* Chrome拡張ポップアップ */
+    .mock-popup {
+      background: white;
+      border-radius: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+      width: 72%;
+      overflow: hidden;
+    }
+    .mock-popup-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 0.38rem 0.55rem; font-size: 0.6rem; font-weight: 700; }
+    .mock-popup-body { padding: 0.35rem 0.55rem; }
+    .mock-popup-row { display: flex; justify-content: space-between; padding: 0.16rem 0; border-bottom: 1px solid #f1f5f9; font-size: 0.52rem; color: #374151; }
+    .mock-popup-row:last-of-type { border-bottom: none; }
+    .mock-popup-btn { display: block; width: 100%; margin-top: 0.35rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; text-align: center; padding: 0.28rem; border-radius: 4px; font-size: 0.55rem; font-weight: 700; }
+    /* ドキュメントページ */
+    .mock-doc { padding: 0.45rem 0.55rem; }
+    .mock-doc-title { font-size: 0.6rem; font-weight: 700; color: #1e293b; margin-bottom: 0.28rem; border-bottom: 2px solid #6366f1; padding-bottom: 0.18rem; }
+    .mock-doc-img { background: #e0e7ff; border-radius: 3px; height: 20px; margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; color: #6366f1; }
+    .mock-doc-line { height: 3px; background: #f1f5f9; border-radius: 2px; margin-bottom: 0.14rem; }
+    .mock-doc-line.short { width: 62%; }
+
+    /* =====================================================
+       レスポンシブ
+    ===================================================== */
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2rem; }
+      .section-title { font-size: 1.5rem; }
+      .nav-links { display: none; }
+      .hero-stats { gap: 0.6rem; }
+      .hero-stat { padding: 0.5rem 0.9rem; }
+      .hero-stat-num { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ナビゲーション -->
+<header>
+  <nav>
+    <span class="nav-logo">wamii.dev</span>
+    <div class="nav-links">
+      <a href="#strengths">強み</a>
+      <a href="#projects">実績</a>
+      <a href="#flow">流れ</a>
+      <a href="#pricing">料金</a>
+      <a href="#contact">お問い合わせ</a>
+    </div>
+  </nav>
+</header>
+
+<!-- ヒーロー -->
+<section class="hero">
+  <div class="hero-mesh"></div>
+  <div class="hero-dots"></div>
+  <div class="hero-inner">
+    <!-- ▼ avatar.png を顔写真（プロ感のある写真）に差し替えると受注率が上がります ▼ -->
+    <div class="hero-avatar"><img src="avatar.png" alt="wamii アイコン"></div>
+    <span class="hero-eyebrow">Python Automation Engineer</span>
+    <h1>その繰り返し作業、<br><span class="grad">自動化します。</span></h1>
+    <p class="hero-sub">
+      毎日のExcel集計・PDFの手入力・Webのコピペ作業を、<br>
+      Pythonツールとして納品。明日から手作業ゼロへ。
+    </p>
+    <!-- 実績数字バッジ -->
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num">8+</div>
+        <div class="hero-stat-label">制作実績</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">10秒</div>
+        <div class="hero-stat-label">最速の自動化</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">100%</div>
+        <div class="hero-stat-label">日本語マニュアル付き</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">無料</div>
+        <div class="hero-stat-label">要件ヒアリング</div>
+      </div>
+    </div>
+    <div class="hero-cta-wrap">
+      <a href="#contact" class="btn-primary">無料相談はこちら →</a>
+      <a href="#projects" class="btn-ghost">実績を見る</a>
+    </div>
+  </div>
+</section>
+
+<!-- 強み -->
+<section class="strengths" id="strengths">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">Why choose me</p>
+      <h2 class="section-title">選ばれる3つの理由</h2>
+      <p class="section-desc">小さな依頼こそ丁寧に。初めての方でも安心してお任せいただけます。</p>
+    </div>
+    <div class="strength-grid">
+      <div class="strength-card reveal">
+        <div class="strength-icon">⚡</div>
+        <h3>迅速なレスポンス</h3>
+        <p>メッセージへの返信は素早く対応します。進捗も随時ご報告するので、作業状況が常に把握できます。</p>
+      </div>
+      <div class="strength-card reveal">
+        <div class="strength-icon">🤖</div>
+        <h3>AI活用で高品質を実現</h3>
+        <p>最新のAI開発環境（Claude Code）を活用。AIによる自動コードレビューと、人間による最終確認の<strong>ダブルチェック体制</strong>でバグの少ない成果物を提供します。</p>
+      </div>
+      <div class="strength-card reveal">
+        <div class="strength-icon">💬</div>
+        <h3>正直・丁寧なコミュニケーション</h3>
+        <p>できること・できないことを正直にお伝えします。「こんなこと頼んでいいのか」という小さな依頼も大歓迎です。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- スキル -->
+<section class="skills" id="skills">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">Skills</p>
+      <h2 class="section-title">対応スキル</h2>
+      <p class="section-desc">データ処理から自動化ツール、Web制作まで幅広く対応します。</p>
+    </div>
+    <div class="skills-grid">
+      <div class="skill-group reveal">
+        <div class="skill-group-title">言語・環境</div>
+        <div class="skill-tags">
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">HTML</span>
+          <span class="skill-tag">CSS</span>
+          <span class="skill-tag">JavaScript</span>
+          <span class="skill-tag">VS Code</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <div class="skill-group-title">データ処理</div>
+        <div class="skill-tags">
+          <span class="skill-tag">pandas</span>
+          <span class="skill-tag">Excel自動化</span>
+          <span class="skill-tag">CSV加工</span>
+          <span class="skill-tag">openpyxl</span>
+          <span class="skill-tag">matplotlib</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <div class="skill-group-title">スクレイピング</div>
+        <div class="skill-tags">
+          <span class="skill-tag">requests</span>
+          <span class="skill-tag">BeautifulSoup</span>
+          <span class="skill-tag">robots.txt遵守</span>
+          <span class="skill-tag">利用規約確認</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <div class="skill-group-title">業務自動化（サブ対応）</div>
+        <div class="skill-tags">
+          <span class="skill-tag">GAS</span>
+          <span class="skill-tag">VBA</span>
+          <span class="skill-tag">Chrome拡張開発</span>
+        </div>
+      </div>
+      <div class="skill-group reveal">
+        <div class="skill-group-title">その他</div>
+        <div class="skill-tags">
+          <span class="skill-tag">AI（Claude Code）</span>
+          <span class="skill-tag">scikit-learn</span>
+          <span class="skill-tag">TF-IDF分析</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 実績 -->
+<section class="projects" id="projects">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">Portfolio</p>
+      <h2 class="section-title">制作実績</h2>
+      <p class="section-desc">実際に開発・納品したプロジェクトの一覧です。</p>
+    </div>
+    <div class="project-grid">
+
+      <div class="project-card reveal">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">売上レポート.xlsx</span></div>
+            <div class="mock-body">
+              <table class="mock-tbl">
+                <tr><th>商品名</th><th>合計</th><th>ランク</th></tr>
+                <tr><td>エスプレッソ</td><td>¥395K</td><td><span class="mock-rank mock-rank-a">A</span></td></tr>
+                <tr><td>カフェラテ</td><td>¥321K</td><td><span class="mock-rank mock-rank-a">A</span></td></tr>
+                <tr><td>アイスコーヒー</td><td>¥158K</td><td><span class="mock-rank mock-rank-b">B</span></td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">データ処理・自動化<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>多店舗売上データ統合 & 分析レポート自動生成</h3>
+          <div class="project-impact">
+            <span class="impact-before">手作業：半日〜1日</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：10秒</span>
+          </div>
+          <p>書式バラバラな3店舗のExcelを統合し、A/B/Cランク付きのレポートを自動生成。<strong>月次レポート作成が半日仕事からワンコマンドに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">pandas</span>
+            <span class="tech-tag">openpyxl</span>
+            <span class="tech-tag">正規表現</span>
+            <span class="tech-tag">Unicode正規化</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#fef3c7,#fde68a);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">収集結果_1000件.csv</span></div>
+            <div class="mock-body">
+              <table class="mock-tbl">
+                <tr><th>商品名</th><th>価格</th><th>評価</th></tr>
+                <tr><td>A Light in...</td><td>£51.77</td><td>★★★☆☆</td></tr>
+                <tr><td>Tipping the...</td><td>£53.74</td><td>★☆☆☆☆</td></tr>
+                <tr><td>Sharp Objects</td><td>£47.82</td><td>★★★★☆</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">Webスクレイピング<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>価格・商品情報 自動収集ツール</h3>
+          <div class="project-impact">
+            <span class="impact-before">手作業：数日分のコピペ</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：1,000件を約3分</span>
+          </div>
+          <p>50ページにわたるWebサイトの商品情報を自動巡回しCSVに保存。<strong>アルバイトに頼んでいたデータ収集作業が完全に不要に。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">requests</span>
+            <span class="tech-tag">BeautifulSoup</span>
+            <span class="tech-tag">pandas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#fce7f3,#fbcfe8)"
+        data-thumb-icon="📝"
+        data-category="テキスト分析・AI活用"
+        data-title="アンケート類似意見 グルーピングツール"
+        data-desc="自由記述アンケートをTF-IDF＋コサイン類似度で自動分類し、似た意見をグループにまとめるツール。同一IPや同じ名前の重複回答を除外した上でグルーピング・集計を一括処理。100件の手動仕分けが数秒で完了し、担当者の負担を大幅削減。"
+        data-points="✅ TF-IDF＋コサイン類似度で類似意見を自動グループ化&#10;✅ 重複回答（同一IP・名前）を自動除外&#10;✅ グループごとの件数を集計してCSV出力&#10;✅ 類似度しきい値を自由に調整可能&#10;✅ 100件の手動仕分けが数秒で完了">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">グルーピング結果.csv</span></div>
+            <div class="mock-cluster">
+              <span class="mock-bubble" style="background:#fce7f3;color:#be185d;">接客・サービス 12件</span>
+              <span class="mock-bubble" style="background:#fef9c3;color:#b45309;">価格・コスパ 9件</span>
+              <span class="mock-bubble" style="background:#e0f2fe;color:#0369a1;">店内環境 7件</span>
+              <span class="mock-bubble" style="background:#dcfce7;color:#15803d;">メニュー 5件</span>
+              <span class="mock-bubble" style="background:#f1f5f9;color:#64748b;">その他 3件</span>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">テキスト分析・AI活用<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>アンケート類似意見 グルーピングツール</h3>
+          <div class="project-impact">
+            <span class="impact-before">手作業：100件で約3時間</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：数秒</span>
+          </div>
+          <p>自由記述アンケートを似た意見ごとに自動でまとめ、件数を集計。<strong>担当者が毎回3時間かけていた仕分け作業がゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">scikit-learn</span>
+            <span class="tech-tag">pandas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#fef9c3,#fde68a)"
+        data-thumb-icon="📋"
+        data-category="Chrome拡張機能"
+        data-title="求人情報1クリック収集 Chrome拡張"
+        data-desc="求人サイト・不動産サイトを閲覧中に、ボタン1つで求人名・会社名・給与・勤務地などの情報をExcelに自動保存するChrome拡張機能。複数サイトをまたいで情報収集する作業が劇的に効率化。"
+        data-points="✅ 閲覧中のページの求人情報をボタン1つで取得&#10;✅ CSV形式でダウンロード（Excelでそのまま開ける）&#10;✅ Indeed・CrowdWorks・求人ボックスなど主要サイトに対応&#10;✅ 収集したデータはそのまま社内共有・比較検討に使用可能&#10;✅ 同じページの二重収集を自動で防止する機能付き">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#fef9c3,#fde68a);">
+          <div class="mock-popup">
+            <div class="mock-popup-header">📋 求人コレクター</div>
+            <div class="mock-popup-body">
+              <div class="mock-popup-row"><span>Webデザイナー</span><span style="color:#16a34a;font-weight:700;">✓ 保存済</span></div>
+              <div class="mock-popup-row"><span>データ入力スタッフ</span><span style="color:#16a34a;font-weight:700;">✓ 保存済</span></div>
+              <div class="mock-popup-row"><span>営業事務</span><span style="color:#6366f1;font-weight:700;">NEW</span></div>
+              <div class="mock-popup-btn">1クリックでExcel保存 →</div>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">Chrome拡張機能<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>求人情報1クリック収集 Chrome拡張</h3>
+          <div class="project-impact">
+            <span class="impact-before">導入前：コピペで1件30秒</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">導入後：1クリックでExcel保存</span>
+          </div>
+          <p>求人サイトを見ながら、気になった求人をボタン1つでCSVに記録。<strong>1件30秒のコピペ作業が完全ゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">JavaScript</span>
+            <span class="tech-tag">Chrome API</span>
+            <span class="tech-tag">CSV出力</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#f0fdf4,#dcfce7)"
+        data-thumb-icon="📈"
+        data-category="データ処理・自動化"
+        data-title="高度な売上分析 & 自動レポート生成ツール"
+        data-desc="名寄せ・電話番号正規化・欠損値補完というデータクレンジングを経て、マスターデータと結合。カテゴリ別利益率・都道府県別売上ランキングを算出し、CSVレポートを自動生成する高度な分析ツール。ログ記録機能付きで処理状況をファイルに保存。"
+        data-points="✅ 名寄せ・電話番号正規化（正規表現）&#10;✅ 欠損値を商品別平均で自動補完&#10;✅ マスターデータとの自動結合（Merge）&#10;✅ カテゴリ別利益率の算出&#10;✅ 都道府県別売上ランキング生成&#10;✅ ログ記録機能付き（処理状況をファイル保存）">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">都道府県別売上ランキング</span></div>
+            <div class="mock-chart">
+              <div class="mock-bar-row"><span class="mock-bar-label">東京</span><div class="mock-bar-track"><div class="mock-bar-fill" style="width:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div><span class="mock-bar-val">¥2.8M</span></div>
+              <div class="mock-bar-row"><span class="mock-bar-label">大阪</span><div class="mock-bar-track"><div class="mock-bar-fill" style="width:68%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div><span class="mock-bar-val">¥1.9M</span></div>
+              <div class="mock-bar-row"><span class="mock-bar-label">神奈川</span><div class="mock-bar-track"><div class="mock-bar-fill" style="width:48%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div><span class="mock-bar-val">¥1.4M</span></div>
+              <div class="mock-bar-row"><span class="mock-bar-label">愛知</span><div class="mock-bar-track"><div class="mock-bar-fill" style="width:35%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div><span class="mock-bar-val">¥0.9M</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">データ処理・自動化<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>高度な売上分析 & 自動レポート生成ツール</h3>
+          <div class="project-impact">
+            <span class="impact-before">手作業：月次レポートに半日</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：ワンコマンドで完了</span>
+          </div>
+          <p>売上データを読み込むだけで、カテゴリ別の利益率・都道府県別ランキングを自動算出してCSV出力。<strong>毎月の会議資料作りに費やしていた半日がゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">pandas</span>
+            <span class="tech-tag">正規表現</span>
+            <span class="tech-tag">logging</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#fff7ed,#fed7aa)"
+        data-thumb-icon="📄"
+        data-category="PDF処理・データ抽出"
+        data-title="PDF請求書データ抽出ツール"
+        data-desc="PDFの請求書から発行日・請求番号・請求先・合計金額・明細テーブルを自動抽出し、スタイル付きExcelに一括出力するツール。複数PDFの一括処理に対応。正規表現でフォーマットが異なる請求書にも柔軟に対応し、テーブルが含まれる場合は全ページ自動検出して専用シートに展開。"
+        data-points="✅ 発行日・請求番号・請求先・合計金額を自動抽出&#10;✅ 明細テーブルを全ページ自動検出・Excel展開&#10;✅ 複数PDFを一括処理しサマリーシートに集約&#10;✅ フォーマットが異なる請求書にも正規表現で対応&#10;✅ スタイル付きExcel（交互背景色・列幅自動調整）で出力">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#fff7ed,#fed7aa);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">請求書サマリー.xlsx</span></div>
+            <div class="mock-body">
+              <table class="mock-tbl">
+                <tr><th>請求番号</th><th>合計金額</th><th>発行日</th></tr>
+                <tr><td>INV-2026-001</td><td>¥253,000</td><td>4/1</td></tr>
+                <tr><td>INV-2026-002</td><td>¥192,500</td><td>4/6</td></tr>
+                <tr><td>INV-2026-003</td><td>¥187,000</td><td>4/10</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">PDF処理・データ抽出<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>PDF請求書データ抽出ツール</h3>
+          <div class="project-impact">
+            <span class="impact-before">手入力：30枚で2〜3時間</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：数十秒</span>
+          </div>
+          <p>月数十枚の請求書PDFをフォルダに入れて実行するだけで、金額・日付・明細をExcelに一括転記。<strong>経理担当者の手入力作業と転記ミスを同時にゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">pdfplumber</span>
+            <span class="tech-tag">pandas</span>
+            <span class="tech-tag">openpyxl</span>
+            <span class="tech-tag">正規表現</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#ecfdf5,#a7f3d0)"
+        data-thumb-icon="🕐"
+        data-category="業務自動化・勤怠管理"
+        data-title="勤怠・シフト集計ツール"
+        data-desc="Excelの勤怠データ（出勤・退勤・休憩時間）を読み込み、実労働時間・残業時間・深夜割増時間を自動計算して月次集計レポートを出力するツール。日をまたぐ深夜シフトにも対応。欠勤・未入力行を自動判定し、従業員ごとに出勤日数・合計残業時間・合計深夜時間を集計。"
+        data-points="✅ 実労働時間・残業時間を自動計算（所定8時間超を残業扱い）&#10;✅ 深夜割増時間を自動算出（22:00〜翌5:00）&#10;✅ 日をまたぐ深夜シフトにも対応&#10;✅ 欠勤・未入力行を自動判定して集計から除外&#10;✅ 月次集計シート + 日別詳細シートの2シート構成で出力">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#ecfdf5,#a7f3d0);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">月次集計_2026年4月.xlsx</span></div>
+            <div class="mock-body">
+              <table class="mock-tbl">
+                <tr><th>氏名</th><th>労働</th><th>残業</th><th>深夜</th></tr>
+                <tr><td>田中 太郎</td><td>152h</td><td>3h</td><td>6h</td></tr>
+                <tr><td>佐藤 花子</td><td>190h</td><td>14h</td><td>0h</td></tr>
+                <tr><td>鈴木 一郎</td><td>213h</td><td>52h</td><td>12h</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">業務自動化・勤怠管理<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>勤怠・シフト集計ツール</h3>
+          <div class="project-impact">
+            <span class="impact-before">手計算：毎月2〜3時間</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">自動化：10秒・ミスゼロ</span>
+          </div>
+          <p>出退勤のExcelを置いて実行するだけで、残業時間・深夜割増を自動計算し月次レポートを出力。<strong>手計算のミスによる給与トラブルをゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">pandas</span>
+            <span class="tech-tag">openpyxl</span>
+            <span class="tech-tag">datetime</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="project-card reveal"
+        data-thumb-bg="linear-gradient(135deg,#eff6ff,#bfdbfe)"
+        data-thumb-icon="📖"
+        data-category="ドキュメント制作"
+        data-title="業務・操作マニュアル 図解制作"
+        data-desc="業務フローやツールの操作手順を、スクリーンショット＋矢印・吹き出しで視覚的に整理した図解マニュアルを制作。新人教育・業務引き継ぎ・社内ツール導入時に繰り返し発生する「説明コスト」を削減します。"
+        data-points="✅ 手順をステップ番号＋図解でわかりやすく整理&#10;✅ スクリーンショットに矢印・吹き出しを追加&#10;✅ 更新・改版しやすい構成設計&#10;✅ PDF・Notion・Webページなど形式は要望に合わせて対応&#10;✅ 非エンジニアでも迷わず読める平易な日本語で記述">
+        <div class="project-thumb" style="background:linear-gradient(135deg,#eff6ff,#bfdbfe);">
+          <div class="mock-win">
+            <div class="mock-bar"><span class="mock-dot mock-dot-r"></span><span class="mock-dot mock-dot-y"></span><span class="mock-dot mock-dot-g"></span><span class="mock-bar-title">操作マニュアル_v1.pdf</span></div>
+            <div class="mock-doc">
+              <div class="mock-doc-title">📖 第1章　ログインと初期設定</div>
+              <div class="mock-doc-img">📷 スクリーンショット（矢印・吹き出し付き）</div>
+              <div class="mock-doc-line"></div>
+              <div class="mock-doc-line short"></div>
+              <div class="mock-doc-img">📷 手順ステップ図解</div>
+            </div>
+          </div>
+        </div>
+        <div class="project-body">
+          <p class="project-category">ドキュメント制作<span class="badge-practice">💡 開発サンプル</span></p>
+          <h3>業務・操作マニュアル 図解制作</h3>
+          <div class="project-impact">
+            <span class="impact-before">説明のたびに30分</span>
+            <span class="impact-arrow">→</span>
+            <span class="impact-after">マニュアルで自己解決</span>
+          </div>
+          <p>業務フローや社内ツールの操作手順を図解マニュアルに整理。<strong>「毎回同じことを説明する」手間をゼロに。</strong></p>
+          <div class="project-techs">
+            <span class="tech-tag">Canva</span>
+            <span class="tech-tag">Notion</span>
+            <span class="tech-tag">Markdown</span>
+            <span class="tech-tag">PDF</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- 依頼の流れ -->
+<section class="flow" id="flow">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">How it works</p>
+      <h2 class="section-title">依頼から納品までの流れ</h2>
+      <p class="section-desc">初めての方でも安心してご依頼いただけるよう、5つのステップで進めます。</p>
+    </div>
+    <div class="flow-steps">
+      <div class="flow-step reveal">
+        <div class="flow-num">1</div>
+        <div class="flow-icon">💬</div>
+        <h4>ヒアリング</h4>
+        <p>やりたいことや<br>課題をお聞きします。<br>相談は無料です。</p>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-num">2</div>
+        <div class="flow-icon">📋</div>
+        <h4>要件確認・お見積り</h4>
+        <p>内容・納品形式・<br>期日を確認して<br>正式なお見積りを提示します。</p>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-num">3</div>
+        <div class="flow-icon">🔨</div>
+        <h4>制作・開発</h4>
+        <p>着手後は進捗を<br>随時ご報告。<br>途中確認も対応します。</p>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-num">4</div>
+        <div class="flow-icon">📦</div>
+        <h4>納品</h4>
+        <p>日本語コメント付き・<br>図解マニュアル同梱で<br>すぐ使える状態でお届け。</p>
+      </div>
+      <div class="flow-step reveal">
+        <div class="flow-num">5</div>
+        <div class="flow-icon">🤝</div>
+        <h4>アフターフォロー</h4>
+        <p>納品後の疑問や<br>軽微な修正にも<br>対応します。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 対応メニュー -->
+<section class="pricing" id="pricing">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">Pricing</p>
+      <h2 class="section-title">対応メニュー・料金目安</h2>
+      <p class="section-desc">まずはお気軽にご相談ください。内容確認後に正式なお見積りをご提示します。</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card reveal">
+        <div class="pricing-icon">📊</div>
+        <h3>データ加工・集計</h3>
+        <div class="pricing-price">¥3,000<span>〜</span></div>
+        <p class="pricing-desc">Excel・CSVの整理・集計・グラフ作成など</p>
+        <ul class="pricing-list">
+          <li>重複削除・空白除去</li>
+          <li>月別・項目別集計</li>
+          <li>グラフ自動生成</li>
+          <li>納期：1〜3日</li>
+        </ul>
+      </div>
+      <div class="pricing-card featured reveal">
+        <div class="pricing-icon">🔍</div>
+        <h3>スクレイピング</h3>
+        <div class="pricing-price">¥5,000<span>〜</span></div>
+        <p class="pricing-desc">Webサイトからのデータ自動収集・CSV出力</p>
+        <ul class="pricing-list">
+          <li>利用規約・robots.txt確認済み</li>
+          <li>サーバー負荷配慮の安全設計</li>
+          <li>CSV・Excel形式で納品</li>
+          <li>納期：2〜5日</li>
+        </ul>
+      </div>
+      <div class="pricing-card reveal">
+        <div class="pricing-icon">⚙️</div>
+        <h3>業務自動化ツール</h3>
+        <div class="pricing-price">¥8,000<span>〜</span></div>
+        <p class="pricing-desc">繰り返し作業を自動化するPythonスクリプト</p>
+        <ul class="pricing-list">
+          <li>要件ヒアリング無料</li>
+          <li>日本語コメント付きで納品</li>
+          <li>動作確認環境を明記</li>
+          <li>納期：3〜7日</li>
+        </ul>
+      </div>
+      <div class="pricing-card reveal">
+        <div class="pricing-icon">🌐</div>
+        <h3>HTML・Webコンテンツ</h3>
+        <div class="pricing-price">¥5,000<span>〜</span></div>
+        <p class="pricing-desc">静的サイト・LP・ブラウザゲームの制作</p>
+        <ul class="pricing-list">
+          <li>スマホ対応（レスポンシブ）</li>
+          <li>シンプルな紹介ページ</li>
+          <li>ブラウザゲーム制作</li>
+          <li>納期：3〜7日</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 安心ポイント -->
+<section class="trust" id="trust">
+  <div class="section-inner">
+    <div class="section-header reveal">
+      <p class="section-label">Peace of mind</p>
+      <h2 class="section-title">安心してお任せいただける理由</h2>
+    </div>
+    <div class="trust-grid">
+      <div class="trust-item reveal">
+        <div class="trust-icon">📋</div>
+        <div>
+          <h4>要件確認を丁寧に実施</h4>
+          <p>作業前に内容・納品形式・期日を確認。認識のズレを防ぎます。</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <div class="trust-icon">🔒</div>
+        <div>
+          <h4>機密情報の取り扱いに注意</h4>
+          <p>個人情報・APIキーなどの機密情報は適切に管理し、納品物には含めません。</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <div class="trust-icon">📦</div>
+        <div>
+          <h4>すぐ使える状態で納品</h4>
+          <p>日本語コメント付き・動作確認済み・requirements.txt同梱。図解付きの起動マニュアルを同梱いたします。</p>
+        </div>
+      </div>
+      <div class="trust-item reveal">
+        <div class="trust-icon">💬</div>
+        <div>
+          <h4>アフターフォロー対応</h4>
+          <p>納品後の軽微な修正・動作確認のご質問にも対応します。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="section-inner">
+    <h2>まずはお気軽にご相談ください</h2>
+    <p>「こんなことできる？」という段階でのご相談も大歓迎です。<br>要件をお聞きした上で、できること・できないことを正直にお伝えします。</p>
+    <!-- URLパラメータで表示を切り替え（JS制御） -->
+    <div class="cta-buttons" id="ctaButtons">
+      <!-- ?from=cn → ココナラボタンのみ -->
+      <a href="https://coconala.com/users/5994313" target="_blank" class="btn-primary cta-cn">ココナラから依頼する →</a>
+      <!-- ?from=cw → クラウドワークスボタンのみ -->
+      <a href="https://crowdworks.jp/public/employees/new?resume_id=3350740" target="_blank" class="btn-primary cta-cw">クラウドワークスから依頼する →</a>
+      <!-- パラメータなし → どちらでも検索できる案内 -->
+      <div class="cta-neutral">
+        <p style="color:rgba(255,255,255,0.7);font-size:0.9rem;margin-bottom:1rem;">各プラットフォームで <strong style="color:white;">「wamii」</strong> と検索してください</p>
+        <div style="display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap;">
+          <span style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.5rem 1.2rem;font-size:0.85rem;color:rgba(255,255,255,0.8);">CrowdWorks</span>
+          <span style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.5rem 1.2rem;font-size:0.85rem;color:rgba(255,255,255,0.8);">Coconala</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 wamii — Python Automation Engineer</p>
+</footer>
+
+<!-- モーダル -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-label="プロジェクト詳細">
+  <div class="modal" id="modal">
+    <div class="modal-thumb" id="modalThumb"></div>
+    <div class="modal-content">
+      <p class="modal-category-label" id="modalCategory"></p>
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <p class="modal-desc" id="modalDesc"></p>
+      <div class="modal-points" id="modalPoints"></div>
+      <div class="modal-sample-wrap" id="modalSampleWrap">
+        <p class="modal-sample-label">📊 出力サンプル</p>
+        <div class="modal-sample" id="modalSample"></div>
+      </div>
+      <div class="modal-techs" id="modalTechs"></div>
+      <button class="modal-close-btn" id="modalCloseBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── 出力サンプルデータ（各実績の実際の出力イメージ） ────────────
+  const SAMPLE_TABLES = {
+    '多店舗売上データ統合 & 分析レポート自動生成': `
+      <table class='sample-table'>
+        <thead><tr><th>商品名</th><th>A店</th><th>B店</th><th>C店</th><th>合計</th><th>ランク</th></tr></thead>
+        <tbody>
+          <tr><td>エスプレッソ</td><td>¥180,000</td><td>¥95,000</td><td>¥120,000</td><td>¥395,000</td><td><span class='rank rank-a'>A</span></td></tr>
+          <tr><td>カフェラテ</td><td>¥145,000</td><td>¥78,000</td><td>¥98,000</td><td>¥321,000</td><td><span class='rank rank-a'>A</span></td></tr>
+          <tr><td>アイスコーヒー</td><td>¥62,000</td><td>¥41,000</td><td>¥55,000</td><td>¥158,000</td><td><span class='rank rank-b'>B</span></td></tr>
+          <tr><td>フラペチーノ</td><td>¥28,000</td><td>¥15,000</td><td>¥22,000</td><td>¥65,000</td><td><span class='rank rank-c'>C</span></td></tr>
+          <tr class='note-row'><td colspan='6'>↑ 3店舗のExcelを統合・クレンジング後に自動出力されるレポートの一部</td></tr>
+        </tbody>
+      </table>`,
+
+    '価格・商品情報 自動収集ツール': `
+      <table class='sample-table'>
+        <thead><tr><th>No.</th><th>商品名</th><th>価格</th><th>評価</th><th>在庫</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>A Light in the Attic</td><td>£51.77</td><td>★★★☆☆</td><td>有り</td></tr>
+          <tr><td>2</td><td>Tipping the Velvet</td><td>£53.74</td><td>★☆☆☆☆</td><td>有り</td></tr>
+          <tr><td>3</td><td>Soumission</td><td>£50.10</td><td>★☆☆☆☆</td><td>有り</td></tr>
+          <tr><td>4</td><td>Sharp Objects</td><td>£47.82</td><td>★★★★☆</td><td>有り</td></tr>
+          <tr class='note-row'><td colspan='5'>取得件数 1,000件 ／ 平均価格 £35.07 ／ 欠損 0件（全50ページを約3分で収集）</td></tr>
+        </tbody>
+      </table>`,
+
+    'アンケート類似意見 グルーピングツール': `
+      <table class='sample-table'>
+        <thead><tr><th>グループ</th><th>代表意見（例）</th><th>件数</th></tr></thead>
+        <tbody>
+          <tr><td>接客・サービス</td><td>「スタッフの対応が少し遅い」</td><td>12件</td></tr>
+          <tr><td>価格・コスパ</td><td>「値段のわりに量が少ない」</td><td>9件</td></tr>
+          <tr><td>店内環境</td><td>「席が狭くて窮屈に感じる」</td><td>7件</td></tr>
+          <tr><td>メニュー</td><td>「ベジタリアン向けを増やしてほしい」</td><td>5件</td></tr>
+          <tr><td>その他</td><td>「駐車場が少ない」</td><td>3件</td></tr>
+          <tr class='note-row'><td colspan='3'>↑ 100件の自由記述を TF-IDF＋類似度分析で自動グループ化した結果</td></tr>
+        </tbody>
+      </table>`,
+
+    '求人情報1クリック収集 Chrome拡張': `
+      <table class='sample-table'>
+        <thead><tr><th>求人名</th><th>会社名</th><th>給与</th><th>勤務地</th></tr></thead>
+        <tbody>
+          <tr><td>Webデザイナー（正社員）</td><td>株式会社〇〇デザイン</td><td>月給28〜35万円</td><td>東京都渋谷区</td></tr>
+          <tr><td>データ入力スタッフ（パート）</td><td>△△物産株式会社</td><td>時給1,200円〜</td><td>大阪府梅田</td></tr>
+          <tr><td>営業事務（契約社員）</td><td>□□サービス</td><td>月給22〜26万円</td><td>神奈川県横浜市</td></tr>
+          <tr class='note-row'><td colspan='4'>↑ ボタン1クリックで収集・Excelに追記保存されるデータの例</td></tr>
+        </tbody>
+      </table>`,
+
+    '高度な売上分析 & 自動レポート生成ツール': `
+      <table class='sample-table'>
+        <thead><tr><th>都道府県</th><th>売上合計</th><th>利益率</th><th>ランク</th></tr></thead>
+        <tbody>
+          <tr><td>東京都</td><td>¥2,840,000</td><td>38.2%</td><td><span class='rank rank-a'>A</span></td></tr>
+          <tr><td>大阪府</td><td>¥1,920,000</td><td>34.7%</td><td><span class='rank rank-a'>A</span></td></tr>
+          <tr><td>神奈川県</td><td>¥1,350,000</td><td>29.1%</td><td><span class='rank rank-b'>B</span></td></tr>
+          <tr><td>愛知県</td><td>¥980,000</td><td>21.4%</td><td><span class='rank rank-b'>B</span></td></tr>
+          <tr><td>沖縄県</td><td>¥310,000</td><td>14.8%</td><td><span class='rank rank-c'>C</span></td></tr>
+          <tr class='note-row'><td colspan='4'>↑ 都道府県別売上ランキング（CSVレポートの一部）</td></tr>
+        </tbody>
+      </table>`,
+
+    'PDF請求書データ抽出ツール': `
+      <table class='sample-table'>
+        <thead><tr><th>ファイル名</th><th>発行日</th><th>請求番号</th><th>合計金額</th><th>テーブル数</th></tr></thead>
+        <tbody>
+          <tr><td>請求書_INV-2026-001.pdf</td><td>2026年4月1日</td><td>INV-2026-001</td><td>¥253,000</td><td>1件</td></tr>
+          <tr><td>請求書_INV-2026-002.pdf</td><td>2026年4月6日</td><td>INV-2026-002</td><td>¥192,500</td><td>1件</td></tr>
+          <tr><td>請求書_INV-2026-003.pdf</td><td>2026年4月10日</td><td>INV-2026-003</td><td>¥187,000</td><td>1件</td></tr>
+          <tr class='note-row'><td colspan='5'>↑ 実際にツールを実行して抽出したサマリーシートの内容</td></tr>
+        </tbody>
+      </table>`,
+
+    '業務・操作マニュアル 図解制作': `
+      <table class='sample-table'>
+        <thead><tr><th>No.</th><th>章タイトル</th><th>ページ数</th><th>図解数</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>ログインと初期設定</td><td>8p</td><td>12図</td></tr>
+          <tr><td>2</td><td>基本操作・画面の見かた</td><td>14p</td><td>18図</td></tr>
+          <tr><td>3</td><td>月次レポートの出力手順</td><td>5p</td><td>7図</td></tr>
+          <tr><td>4</td><td>よくあるエラーと対処法</td><td>6p</td><td>9図</td></tr>
+          <tr class='note-row'><td colspan='4'>↑ 合計46ページ・図解46点のマニュアルを1週間で納品</td></tr>
+        </tbody>
+      </table>`,
+
+    '勤怠・シフト集計ツール': `
+      <table class='sample-table'>
+        <thead><tr><th>氏名</th><th>出勤日数</th><th>合計労働</th><th>残業</th><th>深夜</th><th>欠勤</th></tr></thead>
+        <tbody>
+          <tr><td>田中 太郎</td><td>20日</td><td>152:56</td><td>3:13</td><td>6:00</td><td>2日</td></tr>
+          <tr><td>佐藤 花子</td><td>22日</td><td>190:03</td><td>14:03</td><td>0:00</td><td>0日</td></tr>
+          <tr><td>鈴木 一郎</td><td>22日</td><td>213:20</td><td>52:20</td><td>12:00</td><td>0日</td></tr>
+          <tr class='note-row'><td colspan='6'>↑ ツールを実行して実際に出力された月次集計シートの内容（2026年4月）</td></tr>
+        </tbody>
+      </table>`,
+  };
+
+  // ── モーダル処理 ──────────────────────────────────────────
+  const overlay        = document.getElementById('modalOverlay');
+  const modalThumb     = document.getElementById('modalThumb');
+  const modalCategory  = document.getElementById('modalCategory');
+  const modalTitle     = document.getElementById('modalTitle');
+  const modalDesc      = document.getElementById('modalDesc');
+  const modalPoints    = document.getElementById('modalPoints');
+  const modalSampleWrap = document.getElementById('modalSampleWrap');
+  const modalSample    = document.getElementById('modalSample');
+  const modalTechs     = document.getElementById('modalTechs');
+
+  // モーダルを開く
+  function openModal(card) {
+    const body     = card.querySelector('.project-body');
+    const thumb    = card.querySelector('.project-thumb');
+    const category = body.querySelector('.project-category');
+    const title    = body.querySelector('h3');
+    const desc     = body.querySelector('p:not(.project-category)');
+    const techs    = body.querySelectorAll('.tech-tag');
+
+    // data属性があれば優先使用、なければカード内容をそのまま流用
+    const bgStyle = card.dataset.thumbBg
+      ? `background:${card.dataset.thumbBg}`
+      : thumb.getAttribute('style') || '';
+    const icon = card.dataset.thumbIcon || thumb.textContent.trim();
+
+    modalThumb.style.cssText = bgStyle;
+    modalThumb.textContent   = icon;
+
+    // カテゴリ（バッジ部分を除いた文字だけ取得）
+    const categoryText = category
+      ? category.childNodes[0].textContent.trim()
+      : '';
+    modalCategory.textContent = categoryText;
+
+    const titleText = title ? title.textContent : '';
+    modalTitle.textContent = titleText;
+
+    // 詳細説明：data属性 > カード本文
+    modalDesc.innerHTML = card.dataset.desc
+      ? card.dataset.desc
+      : (desc ? desc.innerHTML : '');
+
+    // 機能リスト：data属性があれば表示
+    if (card.dataset.points) {
+      const lines = card.dataset.points.split('\n');
+      modalPoints.innerHTML = lines.join('<br>');
+      modalPoints.style.display = 'block';
+    } else {
+      const existingList = body.querySelector('div[style*="background"]');
+      if (existingList) {
+        modalPoints.innerHTML = existingList.innerHTML;
+        modalPoints.style.display = 'block';
+      } else {
+        modalPoints.style.display = 'none';
+      }
+    }
+
+    // 出力サンプル：タイトルをキーにSAMPLE_TABLESから取得
+    const sampleHtml = SAMPLE_TABLES[titleText] || null;
+    if (sampleHtml) {
+      modalSample.innerHTML = sampleHtml;
+      modalSampleWrap.style.display = 'block';
+    } else {
+      modalSampleWrap.style.display = 'none';
+    }
+
+    // 技術タグ
+    modalTechs.innerHTML = '';
+    techs.forEach(tag => {
+      const span = document.createElement('span');
+      span.className = 'tech-tag';
+      span.textContent = tag.textContent;
+      modalTechs.appendChild(span);
+    });
+
+    // モーダルを開くたびにスクロール位置をトップに戻す
+    document.querySelector('.modal-content').scrollTop = 0;
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  // モーダルを閉じる
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // 各実績カードにクリックイベントを追加
+  document.querySelectorAll('.project-card').forEach(card => {
+    card.addEventListener('click', () => openModal(card));
+  });
+
+  // 閉じるボタン
+  document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+
+  // オーバーレイクリックで閉じる
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // ESCキーで閉じる
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── CTAボタン切り替え（URLパラメータ判定） ───────────────────────
+  // ?from=cw → CrowdWorksボタンのみ表示
+  // ?from=cn → Coconalaボタンのみ表示
+  // パラメータなし → 中立メッセージを表示
+  (function() {
+    const param = new URLSearchParams(window.location.search).get('from');
+    const btnCw = document.querySelector('.cta-cw');
+    const btnCn = document.querySelector('.cta-cn');
+    const neutral = document.querySelector('.cta-neutral');
+
+    // 全て非表示にしてから、条件に合うものだけ表示する
+    btnCw.style.display = 'none';
+    btnCn.style.display = 'none';
+    neutral.style.display = 'none';
+
+    if (param === 'cw') {
+      btnCw.style.display = 'inline-flex';
+    } else if (param === 'cn') {
+      btnCn.style.display = 'inline-flex';
+    } else {
+      neutral.style.display = 'block';
+    }
+  })();
+
+  // ── スクロールフェードイン（Intersection Observer） ──────────────
+  // ページをスクロールしたときに各要素を順番にフェードインさせる
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.08,
+    rootMargin: '0px 0px -40px 0px'
+  });
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+
+</body>
+</html>
